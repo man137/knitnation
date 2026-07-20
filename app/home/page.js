@@ -8,7 +8,7 @@ import "slick-carousel/slick/slick.css"
 import "slick-carousel/slick/slick-theme.css"
 import Link from "next/link"
 import "../../style/slide.css"
-import { auth } from "../../firebase"
+import { useSession } from "next-auth/react"
 import { Menu, X, Search } from "lucide-react"
 
 import { fetchProducts } from "../../stores"
@@ -24,7 +24,8 @@ import {
 import withReduxProvider from "../hoc"
 
 const Home = () => {
-  const [user, setUser] = useState(null)
+  const { data: session } = useSession()
+  const user = session?.user || null
   const [activeSlide, setActiveSlide] = useState(0)
   const [hoveredProduct, setHoveredProduct] = useState(null)
   const [displayedProducts, setDisplayedProducts] = useState(4)
@@ -36,22 +37,13 @@ const Home = () => {
   const [selectedCategory, setSelectedCategory] = useState("jeans")
   const dispatch = useDispatch()
   const womensProducts = useSelector((state) => state.products.women)
+  const loadingProducts = useSelector((state) => state.products.loading)
   const cartItems = useSelector((state) => state.cart.items)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const slideshowDuration = 5000
   const imageNames = ["one", "two", "three", "four", "five"]
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      if (currentUser) {
-        setUser(currentUser)
-      } else {
-        // Allow access to /home without login, but redirect to login for purchases
-        setUser(null)
-      }
-    })
-    return () => unsubscribe()
-  }, [router])
+  // Firebase auth logic removed, NextAuth session used instead
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -72,7 +64,7 @@ const Home = () => {
           category: "women",
           data: productsData.women.map((product) => ({
             ...product,
-            createdAt: product.createdAt.toDate().toISOString(),
+            createdAt: product.createdAt ? new Date(product.createdAt).toISOString() : new Date().toISOString(),
           })),
         }
         dispatch(fetchProductsSuccess(filteredProductsData))
@@ -432,6 +424,16 @@ const Home = () => {
     </motion.nav>
 
       <main className="bg-gradient-to-b from-neutral-50 to-white min-h-screen">
+        {loadingProducts ? (
+          <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ width: 48, height: 48, border: '3px solid #e5e7eb', borderTop: '3px solid #059669', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+              <p style={{ color: '#6b7280' }}>Loading products...</p>
+              <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Hero Slideshow */}
         <div className="relative w-full bg-white overflow-hidden">
           <AnimatePresence mode="wait">
@@ -818,6 +820,9 @@ const Home = () => {
             </div>
           </motion.section>
         </div>
+        </>
+      )}
+    </main>
 
         {/* Cart Overlay */}
         <AnimatePresence>
@@ -948,7 +953,6 @@ const Home = () => {
             </motion.div>
           )}
         </motion.div>
-      </main>
     </>
   )
 }

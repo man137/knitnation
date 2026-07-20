@@ -4,9 +4,8 @@ import Link from "next/link"
 import Head from "next/head"
 import { useRouter } from "next/navigation"
 import { useDispatch } from "react-redux"
-import { signInWithEmailAndPassword } from "firebase/auth"
+import { signIn } from "next-auth/react"
 import { setUser, setError } from "../../redux/slices"
-import { auth } from "../../firebase"
 import withReduxProvider from "../hoc"
 import { toast, Toaster } from "react-hot-toast"
 import Layout from "../layout"
@@ -33,8 +32,18 @@ const LoginForm = () => {
     e.preventDefault()
     setLoading(true)
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      dispatch(setUser(userCredential.user))
+      const result = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      })
+      if (result?.error) {
+        throw new Error(result.error)
+      }
+      
+      // Fetch session if needed or let NextAuth handle it.
+      // dispatch(setUser(userCredential.user)) is somewhat redundant now if we use useSession
+      
       toast.success("Logged in successfully!")
       router.push("/home")
     } catch (error) {

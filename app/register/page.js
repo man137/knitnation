@@ -34,45 +34,28 @@ const RegistrationForm = () => {
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
-  useEffect(() => {
-    const initFirebase = async () => {
-      const { initializeApp } = await import("firebase/app")
-      const { getAuth } = await import("firebase/auth")
-      const { addUserToFirestore } = await import("../../stores")
-      const auth = getAuth()
-      auth.languageCode = "en"
-
-      window.firebaseAuth = auth
-      window.addUserToFirestore = addUserToFirestore
-    }
-
-    if (typeof window !== "undefined") {
-      initFirebase()
-    }
-  }, [])
+  // Removed Firebase init
 
   const sendOtp = async (e) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      const response = await fetch("/api/sendOtp", {
+      const response = await fetch("/api/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: fullName, email, password, phone: phoneNumber }),
       })
 
-      if (!response.ok) {
-        throw new Error(`Failed to send OTP: ${response.statusText}`)
+      const data = await response.json()
+      if (!data.success) {
+        throw new Error(data.error || "Registration failed")
       }
 
-      const data = await response.json()
-      toast.success(data.message)
-      setShowOtpInput(true)
+      toast.success("Account created successfully!")
+      router.push("/login")
     } catch (err) {
-      console.error("Error sending OTP:", err)
+      console.error("Error during registration:", err)
       toast.error(err.message || "An unexpected error occurred.")
     } finally {
       setLoading(false)
@@ -80,25 +63,7 @@ const RegistrationForm = () => {
   }
 
   const handleVerifyOtp = async (e) => {
-    e.preventDefault()
-    if (typeof window === "undefined") return
-    setLoading(true)
-    try {
-      const { signInWithEmailLink, createUserWithEmailAndPassword, updateProfile } = await import("firebase/auth")
-
-      const userCredential = await createUserWithEmailAndPassword(window.firebaseAuth, email, password)
-      const user = userCredential.user
-      await updateProfile(user, { displayName: fullName })
-      await window.addUserToFirestore(user.uid, email, fullName, phoneNumber)
-
-      dispatch(setUser(user))
-      router.push("/home")
-    } catch (error) {
-      console.error("Error in registration process:", error)
-      toast.error(`Error in registration: ${error.message}`)
-    } finally {
-      setLoading(false)
-    }
+    // Left empty since we bypass OTP for now in MongoDB migration
   }
 
   const containerStyle = {
@@ -421,7 +386,7 @@ const RegistrationForm = () => {
                       }}
                     >
                       {loading && <CgSpinner size={18} style={spinnerStyle} />}
-                      <span>{loading ? "Sending..." : "Send OTP via Email"}</span>
+                      <span>{loading ? "Registering..." : "Create Account"}</span>
                     </button>
 
                     <div style={linkContainerStyle}>

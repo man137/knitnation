@@ -6,7 +6,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { fetchCart } from '../redux/slices';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { SessionProvider } from 'next-auth/react';
 
 export default function RootLayout({ children }) {
   // ... (rest of your RootLayout component)
@@ -17,7 +17,9 @@ export default function RootLayout({ children }) {
         <ToastContainer /> 
 
         <Provider store={store}> {/* Wrap CartProvider with Provider */}
+          <SessionProvider>
             {children}
+          </SessionProvider>
         </Provider>
       </body>
     </html>
